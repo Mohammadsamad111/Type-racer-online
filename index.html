@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-   <meta charset="UTF-8">
+     <meta charset="UTF-8">
  <meta name="google-site-verification" content="67M4qarqbK4j9FlZmavMwWcy-h-Xnt-0mMzuZ049qUA" />
 <meta name="description" content="Play Type Racer online. Improve typing speed while racing cars. Free browser typing game with levels, score and WPM tracking.">
 <meta name="keywords" content="typing game, type racer, typing speed game, typing practice game, online typing game">
@@ -86,7 +86,7 @@
             border-color: #aaaaaa;
         }
 
-        /* --- PAUSE MENU OVERLAY (centered) --- */
+        /* --- PAUSE MENU OVERLAY --- */
         #pauseMenu {
             position: absolute;
             top: 0;
@@ -589,6 +589,12 @@
             if (audioCtx.state === 'suspended') audioCtx.resume();
             sounds.play(120, 'sawtooth', 0.5, 0.4);
             sounds.play(180, 'square', 0.3, 0.3);
+
+            // ***** CENTER CAR *****
+            this.car.x = this.canvas.width / 2;
+            this.car.targetX = this.car.x;
+            this.car.angle = 0;
+
             this.state = 'playing'; 
             this.paused = false;
             this.pauseMenu.classList.remove('active');
@@ -776,6 +782,4 @@
 })();
 </script>
 </body>
-
 </html>
-
