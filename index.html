@@ -1,0 +1,778 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+   <meta charset="UTF-8">
+<meta name="description" content="Play Type Racer online. Improve typing speed while racing cars. Free browser typing game with levels, score and WPM tracking.">
+<meta name="keywords" content="typing game, type racer, typing speed game, typing practice game, online typing game">
+<title>Type Racer Game – Free Online Typing Speed Racing Game</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; touch-action: manipulation; }
+        body { 
+            font-family: 'Segoe UI', Tahoma, sans-serif; 
+            background: #050505; 
+            overflow: hidden; 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            height: 100vh; 
+        }
+
+        #gameWrapper { 
+            position: relative;
+            width: 100%; 
+            height: 100%; 
+            max-width: 450px; 
+            background: #0a0a0a;
+            border-left: 2px solid #222;
+            border-right: 2px solid #222;
+            overflow: hidden;
+            box-shadow: 0 0 50px rgba(0, 212, 255, 0.2);
+        }
+
+        #gameCanvas { width: 100%; height: 100%; display: block; }
+
+        /* --- TOP RIGHT SOUND BUTTON --- */
+        .sound-toggle {
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            width: 48px;
+            height: 48px;
+            background: rgba(20, 20, 30, 0.9);
+            border: 2px solid #00d4ff;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+            cursor: pointer;
+            z-index: 200;
+            box-shadow: 0 0 15px rgba(0,212,255,0.5);
+            backdrop-filter: blur(4px);
+            transition: all 0.2s;
+            user-select: none;
+        }
+        .sound-toggle.muted {
+            border-color: #ff4444;
+            opacity: 0.8;
+        }
+
+        /* --- TOP LEFT PAUSE BUTTON --- */
+        .pause-toggle {
+            position: absolute;
+            top: 16px;
+            left: 16px;
+            width: 48px;
+            height: 48px;
+            background: rgba(20, 20, 30, 0.9);
+            border: 2px solid #ffaa00;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+            cursor: pointer;
+            z-index: 200;
+            box-shadow: 0 0 15px rgba(255,170,0,0.5);
+            backdrop-filter: blur(4px);
+            transition: all 0.2s;
+            user-select: none;
+        }
+        .pause-toggle.hidden {
+            display: none;
+        }
+        .pause-toggle.paused {
+            border-color: #aaaaaa;
+        }
+
+        /* --- PAUSE MENU OVERLAY (centered) --- */
+        #pauseMenu {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 300;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s;
+            backdrop-filter: blur(5px);
+        }
+        #pauseMenu.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        .pause-box {
+            background: #111;
+            border: 3px solid #ffaa00;
+            border-radius: 30px;
+            padding: 30px 40px;
+            text-align: center;
+            box-shadow: 0 0 40px #ffaa00;
+        }
+        .pause-box h2 {
+            color: white;
+            font-size: 2rem;
+            margin-bottom: 25px;
+            text-shadow: 0 0 10px #ffaa00;
+        }
+        .pause-buttons {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        .pause-btn {
+            padding: 15px 30px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            border: none;
+            border-radius: 40px;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            min-width: 140px;
+        }
+        .pause-btn.resume {
+            background: #00d4ff;
+            color: #000;
+            box-shadow: 0 0 20px #00d4ff;
+        }
+        .pause-btn.restart {
+            background: #ff4444;
+            color: white;
+            box-shadow: 0 0 20px #ff4444;
+        }
+        .pause-btn:hover {
+            transform: scale(1.05);
+        }
+
+        /* Start screen - enhanced design */
+        .start-header {
+            position: absolute;
+            top: 20px;
+            left: 0;
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            z-index: 25;
+            pointer-events: none;
+        }
+        .header-btn {
+            pointer-events: auto;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(0, 212, 255, 0.3);
+            color: #00d4ff;
+            font-size: 0.75rem;
+            padding: 8px 15px;
+            border-radius: 20px;
+            cursor: pointer;
+            backdrop-filter: blur(10px);
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            transition: all 0.2s;
+        }
+        .header-btn:hover { background: #00d4ff; color: #000; box-shadow: 0 0 15px #00d4ff; }
+
+        /* Modals */
+        .modal-overlay {
+            position: absolute;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.85);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s;
+            padding: 20px;
+        }
+        .modal-overlay.active { opacity: 1; pointer-events: auto; }
+
+        .modal-content {
+            background: #111;
+            border: 2px solid #00d4ff;
+            border-radius: 20px;
+            padding: 25px;
+            color: white;
+            max-width: 350px;
+            text-align: left;
+        }
+        .modal-content h2 { color: #00d4ff; margin-bottom: 15px; font-size: 1.4rem; text-align: center; }
+        .modal-content li { margin-bottom: 10px; font-size: 0.85rem; color: #ccc; line-height: 1.4; }
+        .close-modal { display: block; margin: 15px auto 0; background: #333; color: white; border: none; padding: 10px 20px; border-radius: 10px; cursor: pointer; }
+
+        /* HUD (5 columns) */
+        #hud { 
+            position: absolute; top: 75px; left: 5px; right: 5px; 
+            display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; 
+            z-index: 10; pointer-events: none; 
+        }
+        .stat-box { background: rgba(0, 0, 0, 0.85); border: 1px solid #00d4ff; border-radius: 4px; padding: 4px 2px; text-align: center; color: white; }
+        .stat-label { font-size: 6px; color: #00d4ff; text-transform: uppercase; }
+        .stat-value { font-size: 10px; font-weight: bold; }
+
+        /* Screens */
+        .screen { 
+            position: absolute; inset: 0; display: flex; flex-direction: column; 
+            justify-content: center; align-items: center; 
+            background: radial-gradient(circle at 50% 30%, #1a1a2e, #050505); 
+            z-index: 20; color: white; text-align: center; padding: 20px;
+        }
+        .hidden { display: none !important; }
+
+        /* Start screen specific styling */
+        #startScreen .car-icon {
+            font-size: 4rem;
+            margin-bottom: 10px;
+            filter: drop-shadow(0 0 20px #00d4ff);
+            animation: float 2s infinite ease-in-out;
+        }
+        @keyframes float {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+            100% { transform: translateY(0px); }
+        }
+        #startScreen h1 { 
+            font-size: 2.5rem; 
+            color: #fff; 
+            margin-bottom: 5px; 
+            text-shadow: 0 0 15px #00d4ff, 0 0 30px #0077ff;
+            letter-spacing: 2px;
+        }
+        #startScreen .subtitle { 
+            color: #aaa; 
+            font-size: 1rem; 
+            margin-bottom: 30px;
+            border-bottom: 1px dashed #00d4ff;
+            padding-bottom: 10px;
+        }
+        #startScreen .btn { 
+            padding: 18px 50px; 
+            font-size: 1.2rem; 
+            background: #00d4ff; 
+            border: none; 
+            border-radius: 50px; 
+            color: #000; 
+            font-weight: bold; 
+            cursor: pointer;
+            box-shadow: 0 0 30px #00d4ff;
+            transition: transform 0.2s;
+        }
+        #startScreen .btn:hover {
+            transform: scale(1.05);
+        }
+        #startScreen .best-container {
+            margin-top: 30px;
+            background: rgba(255, 255, 255, 0.05);
+            padding: 10px 20px;
+            border-radius: 30px;
+            border: 1px solid #ffd700;
+            color: #ffd700;
+            font-size: 1rem;
+        }
+
+        /* Game over screen styling */
+        #gameOverScreen h1 { 
+            font-size: 2.8rem; 
+            color: #ff4444; 
+            text-shadow: 0 0 20px #ff0000;
+            margin-bottom: 20px;
+        }
+        .stats-grid {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 20px;
+            margin: 20px 0 30px;
+        }
+        .stat-card {
+            background: rgba(0, 0, 0, 0.7);
+            border: 1px solid #00d4ff;
+            border-radius: 15px;
+            padding: 15px;
+            min-width: 120px;
+            text-align: center;
+            backdrop-filter: blur(5px);
+        }
+        .stat-card .label {
+            font-size: 0.8rem;
+            color: #00d4ff;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .stat-card .value {
+            font-size: 2rem;
+            font-weight: bold;
+            color: white;
+            line-height: 1.2;
+        }
+        #gameOverScreen .btn {
+            padding: 15px 40px;
+            font-size: 1.2rem;
+            background: #00d4ff;
+            border: none;
+            border-radius: 40px;
+            color: #000;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 0 20px #00d4ff;
+        }
+
+        #levelNotify {
+            position: absolute; top: 35%; left: 50%; transform: translate(-50%, -50%);
+            color: #ffd700; font-size: 2.2rem; font-weight: bold; opacity: 0; pointer-events: none; z-index: 30; transition: opacity 0.3s;
+        }
+        #mobileInput { position: absolute; top: -100px; opacity: 0; }
+    </style>
+</head>
+<body>
+
+    <div id="gameWrapper" onclick="game.focusInput()">
+        <!-- Sound button (top right) -->
+        <div id="soundToggleBtn" class="sound-toggle" onclick="game.toggleMute()">🔊</div>
+        <!-- Pause button (top left) initially hidden -->
+        <div id="pauseToggleBtn" class="pause-toggle hidden" onclick="game.togglePause()">⏸️</div>
+
+        <!-- Pause Menu Overlay -->
+        <div id="pauseMenu">
+            <div class="pause-box">
+                <h2>⏸ PAUSED</h2>
+                <div class="pause-buttons">
+                    <button class="pause-btn resume" onclick="game.resume()">▶ Resume</button>
+                    <button class="pause-btn restart" onclick="game.restart()">⟲ Restart</button>
+                </div>
+            </div>
+        </div>
+
+        <input type="text" id="mobileInput" autocomplete="off" autocapitalize="off" spellcheck="false">
+        <canvas id="gameCanvas"></canvas>
+        <div id="levelNotify">LEVEL UP!</div>
+
+        <!-- Enhanced Start Screen -->
+        <div id="startScreen" class="screen">
+            <div class="start-header">
+                <div class="header-btn" onclick="game.toggleModal('howToModal')">❓ Rules</div>
+                <div class="header-btn" onclick="game.toggleModal('feedbackModal')">💬 Feedback</div>
+            </div>
+            <div class="car-icon">🏎️</div>
+            <h1>TYPE RACER</h1>
+            <p class="subtitle">shift into gear · type to drive</p>
+            <button class="btn" onclick="game.start()">ENGAGE DRIVE</button>
+            <div class="best-container">
+                ⭐ BEST WPM: <span id="bestWpmDisplay">0</span>
+            </div>
+        </div>
+
+        <div id="howToModal" class="modal-overlay">
+            <div class="modal-content">
+                <h2>📖 Instructions</h2>
+                <ul style="list-style: none;">
+                    <li>🎯 <b>Goal:</b> Type words to collect falling coins.</li>
+                    <li>🔒 <b>Locked:</b> Once you start a word, you must finish it.</li>
+                    <li>🚦 <b>The Line:</b> Finish before it crosses the <b>Red Line</b>.</li>
+                    <li>📈 <b>Progression:</b> Difficulty grows Level 1-10 every 50 points.</li>
+                </ul>
+                <button class="close-modal" onclick="game.toggleModal('howToModal')">Got it!</button>
+            </div>
+        </div>
+
+        <div id="feedbackModal" class="modal-overlay">
+            <div class="modal-content">
+                <h2>💬 Feedback</h2>
+                <textarea style="width:100%; height:80px; background:#222; border:1px solid #444; color:white; padding:8px; border-radius:8px;"></textarea>
+                <button class="close-modal" onclick="game.toggleModal('feedbackModal')">Submit</button>
+            </div>
+        </div>
+
+        <!-- HUD (5 columns) -->
+        <div id="hud" class="hidden">
+            <div class="stat-box" style="border-color:#ffd700"><div class="stat-label" style="color:#ffd700">LVL</div><div id="levelVal" class="stat-value">1</div></div>
+            <div class="stat-box"><div class="stat-label">SCR</div><div id="scoreVal" class="stat-value">0</div></div>
+            <div class="stat-box"><div class="stat-label">MISS</div><div id="missVal" class="stat-value" style="color:#ff4444">0/10</div></div>
+            <div class="stat-box"><div class="stat-label">WPM</div><div id="wpmVal" class="stat-value">0</div></div>
+            <div class="stat-box"><div class="stat-label">TIME</div><div id="timerVal" class="stat-value">1.00s</div></div>
+        </div>
+
+        <!-- Enhanced Game Over Screen -->
+        <div id="gameOverScreen" class="screen hidden">
+            <h1>CRASHED</h1>
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="label">TIME</div>
+                    <div class="value" id="finalTime">0s</div>
+                </div>
+                <div class="stat-card">
+                    <div class="label">WPM</div>
+                    <div class="value" id="finalWpm">0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="label">SCORE</div>
+                    <div class="value" id="finalScore">0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="label">LEVEL</div>
+                    <div class="value" id="finalLevel">1</div>
+                </div>
+            </div>
+            <button class="btn" onclick="game.restart()">RETRY DRIVE</button>
+        </div>
+    </div>
+
+<script>
+(function(){
+    // --- HIGH VOLUME AUDIO ENGINE ---
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    const audioCtx = new AudioContext();
+    const mainGain = audioCtx.createGain();
+    mainGain.connect(audioCtx.destination);
+    mainGain.gain.value = 0.85;
+
+    const sounds = {
+        play(freq, type, dur, vol = 0.1) {
+            if (game.isMuted) return;
+            const osc = audioCtx.createOscillator(); 
+            const g = audioCtx.createGain();
+            osc.connect(g); 
+            g.connect(mainGain);
+            osc.type = type; 
+            osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+            g.gain.setValueAtTime(vol, audioCtx.currentTime);
+            g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + dur);
+            osc.start(); 
+            osc.stop(audioCtx.currentTime + dur);
+        },
+        playMusic() {
+            if (this.musicInterval) return;
+            let step = 0; 
+            const notes = [82, 0, 82, 123, 82, 0, 82, 146];
+            this.musicInterval = setInterval(() => {
+                if (game.isMuted || game.state !== 'playing' || game.paused) return;
+                if (notes[step] > 0) this.play(notes[step], 'sawtooth', 0.22, 0.18);
+                step = (step + 1) % notes.length;
+            }, 200);
+        },
+        stopMusic() { clearInterval(this.musicInterval); this.musicInterval = null; }
+    };
+
+    const LEVEL_WORDS = {
+        1:  ["cat", "dog", "sun", "run", "sky", "map", "red", "ice", "toy", "car", "fox", "hat", "pen", "cup", "box"],
+        2:  ["bird", "tree", "star", "fire", "glow", "book", "fish", "lamp", "door", "road", "wind", "snow", "blue", "fast", "park"],
+        3:  ["apple", "house", "cloud", "dance", "eagle", "flash", "grape", "light", "ocean", "river", "bread", "stone", "water", "voice", "table"],
+        4:  ["rocket", "garden", "silver", "winter", "planet", "guitar", "window", "orange", "bridge", "forest", "coffee", "summer", "purple", "camera", "mirror"],
+        5:  ["journey", "monster", "freedom", "whisper", "library", "picture", "thunder", "captain", "village", "morning", "kitchen", "diamond", "blanket", "weather", "physics"],
+        6:  ["mountain", "keyboard", "universe", "treasure", "sandwich", "hospital", "business", "tomorrow", "calendar", "platform", "standard", "engineer", "software", "creative", "strategy"],
+        7:  ["adventure", "beautiful", "calculate", "different", "expensive", "furniture", "happiness", "important", "telephone", "yesterday", "architect", "challenge", "community", "discovery", "knowledge"],
+        8:  ["everything", "friendship", "lighthouse", "motivation", "newsletter", "perfection", "strawberry", "understand", "vocabulary", "wheelchair", "experience", "generation", "management", "philosophy", "reflection"],
+        9:  ["metamorphosis", "imagination", "celebration", "environment", "opportunity", "personality", "relationship", "achievement", "architecture", "contribution", "distribution", "organization", "satisfaction", "significance", "transparent"],
+        10: ["interstellar", "extraordinary", "revolutionary", "infrastructure", "communication", "synchronization", "neighborhood", "responsibility", "transformation", "investigation", "multiplication", "determination", "representation", "identification", "characteristic"]
+    };
+
+    class Coin {
+        constructor(w, level, speed, lastWord) {
+            const pool = LEVEL_WORDS[level];
+            let picked;
+            do { picked = pool[Math.floor(Math.random() * pool.length)]; } while (picked === lastWord);
+            this.word = picked;
+            this.typed = ""; this.x = Math.random() * (w - 120) + 60; this.y = -50;
+            this.speed = speed; this.radius = 20; this.isMissed = false;
+        }
+        update() { this.y += this.speed; }
+        draw(ctx) {
+            ctx.fillStyle = this.isMissed ? "#444" : "#ffd700";
+            ctx.beginPath(); ctx.arc(this.x, this.y, this.radius, 0, Math.PI*2); ctx.fill();
+            ctx.font = "bold 14px monospace";
+            const tw = ctx.measureText(this.word).width + 12;
+            ctx.fillStyle = "rgba(0,0,0,0.85)"; ctx.fillRect(this.x - tw/2, this.y - 48, tw, 22);
+            ctx.strokeStyle = this.isMissed ? "#ff4444" : (this.typed.length > 0 ? "#ff3333" : "#444");
+            ctx.strokeRect(this.x - tw/2, this.y - 48, tw, 22);
+            ctx.textAlign = "left";
+            const startX = this.x - ctx.measureText(this.word).width/2;
+            // typed part in RED
+            ctx.fillStyle = this.isMissed ? "#ff4444" : "#ff3333";
+            ctx.fillText(this.typed, startX, this.y - 32);
+            // untyped part in white
+            ctx.fillStyle = this.isMissed ? "#666" : "white";
+            ctx.fillText(this.word.substring(this.typed.length), startX + ctx.measureText(this.typed).width, this.y - 32);
+        }
+    }
+
+    class Game {
+        constructor() {
+            this.canvas = document.getElementById('gameCanvas'); this.ctx = this.canvas.getContext('2d');
+            this.input = document.getElementById('mobileInput'); this.state = 'start';
+            this.car = { x: 0, targetX: 0, angle: 0 }; 
+            this.fixedSpeed = 0.5;   // slower
+            this.bestWpm = localStorage.getItem('bestWpm') || 0;
+            this.lastWord = ""; this.isMuted = false;
+            this.paused = false;
+            this.pauseMenu = document.getElementById('pauseMenu');
+            document.getElementById('bestWpmDisplay').innerText = this.bestWpm;
+            this.resize(); window.addEventListener('resize', () => this.resize());
+            this.input.addEventListener('input', (e) => {
+                const char = e.data ? e.data.toLowerCase() : "";
+                if (char && !this.paused) this.handleInput(char);
+                this.input.value = "";
+            });
+            window.addEventListener('keydown', (e) => { 
+                if(e.key.length === 1 && !this.paused) this.handleInput(e.key.toLowerCase()); 
+            });
+
+            this.updateSoundButton();
+            this.updatePauseButton();
+        }
+
+        toggleMute() {
+            this.isMuted = !this.isMuted;
+            this.updateSoundButton();
+        }
+
+        updateSoundButton() {
+            const btn = document.getElementById('soundToggleBtn');
+            if (this.isMuted) {
+                btn.innerHTML = '🔇';
+                btn.classList.add('muted');
+            } else {
+                btn.innerHTML = '🔊';
+                btn.classList.remove('muted');
+            }
+        }
+
+        togglePause() {
+            if (this.state !== 'playing') return;
+            this.paused = !this.paused;
+            this.updatePauseButton();
+            if (this.paused) {
+                sounds.stopMusic();
+                this.pauseMenu.classList.add('active');
+            } else {
+                sounds.playMusic();
+                this.pauseMenu.classList.remove('active');
+            }
+        }
+
+        // Called by Resume button
+        resume() {
+            if (this.paused) {
+                this.togglePause(); // will unpause
+            }
+        }
+
+        updatePauseButton() {
+            const btn = document.getElementById('pauseToggleBtn');
+            if (this.state === 'playing') {
+                btn.classList.remove('hidden');
+                if (this.paused) {
+                    btn.innerHTML = '▶️';
+                    btn.classList.add('paused');
+                } else {
+                    btn.innerHTML = '⏸️';
+                    btn.classList.remove('paused');
+                }
+            } else {
+                btn.classList.add('hidden');
+            }
+        }
+
+        toggleModal(id) { document.getElementById(id).classList.toggle('active'); }
+        resize() { this.canvas.width = this.canvas.clientWidth; this.canvas.height = this.canvas.clientHeight; this.deadlineY = this.canvas.height - 140; }
+        focusInput() { if(this.state === 'playing' && !this.paused) this.input.focus(); }
+
+        start() {
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            sounds.play(120, 'sawtooth', 0.5, 0.4);
+            sounds.play(180, 'square', 0.3, 0.3);
+            this.state = 'playing'; 
+            this.paused = false;
+            this.pauseMenu.classList.remove('active');
+            this.score = 0; this.misses = 0; this.wordsTyped = 0; this.level = 1;
+            this.coins = []; this.spawnTimer = 0; 
+            this.startTime = Date.now() - 1000; 
+            this.activeCoin = null; this.roadOffset = 0;
+            document.getElementById('startScreen').classList.add('hidden');
+            document.getElementById('hud').classList.remove('hidden');
+            this.updatePauseButton();
+            this.input.focus(); 
+            sounds.playMusic(); 
+            this.loop();
+        }
+
+        handleInput(char) {
+            if (this.state !== 'playing' || this.paused) return;
+            if (this.activeCoin && this.activeCoin.y < this.deadlineY) {
+                if (char === this.activeCoin.word[this.activeCoin.typed.length]) {
+                    this.activeCoin.typed += char; this.car.targetX = this.activeCoin.x;
+                    sounds.play(450 + (this.activeCoin.typed.length * 40), 'sine', 0.06, 0.25);
+                    if (this.activeCoin.typed === this.activeCoin.word) this.collect();
+                }
+            } else {
+                const match = this.coins.find(c => c.word[0] === char && c.y < this.deadlineY);
+                if (match) { 
+                    this.activeCoin = match; 
+                    this.activeCoin.typed = char; 
+                    this.car.targetX = match.x; 
+                    sounds.play(320, 'sine', 0.1, 0.3);
+                }
+            }
+        }
+
+        collect() {
+            this.score += 10; this.wordsTyped++; this.coins = this.coins.filter(c => c !== this.activeCoin); this.activeCoin = null;
+            let newLevel = Math.min(10, Math.floor(this.score / 50) + 1);
+            if(newLevel > this.level) { this.level = newLevel; this.showLevelUp(); 
+                sounds.play(620, 'sine', 0.5, 0.6);
+            }
+            this.updateHUD(); 
+            sounds.play(820, 'square', 0.15, 0.4);
+        }
+
+        showLevelUp() {
+            const notify = document.getElementById('levelNotify');
+            notify.innerText = `LEVEL ${this.level}`; notify.style.opacity = "1";
+            setTimeout(() => notify.style.opacity = "0", 1500);
+        }
+
+        updateHUD() {
+            const elapsed = Date.now() - this.startTime; // in ms
+            const seconds = (elapsed / 1000).toFixed(2) + "s";
+            document.getElementById('timerVal').innerText = seconds;
+            document.getElementById('levelVal').innerText = this.level;
+            document.getElementById('scoreVal').innerText = this.score;
+            document.getElementById('missVal').innerText = `${this.misses}/10`;
+            const wpm = Math.round(this.wordsTyped / (elapsed / 60000)) || 0;
+            document.getElementById('wpmVal').innerText = wpm;
+            if(wpm > this.bestWpm) { this.bestWpm = wpm; localStorage.setItem('bestWpm', wpm); document.getElementById('bestWpmDisplay').innerText = wpm; }
+        }
+
+        gameOver() { 
+            this.state = 'gameover'; 
+            this.paused = false;
+            this.pauseMenu.classList.remove('active');
+            sounds.stopMusic(); 
+            sounds.play(120, 'sawtooth', 0.7, 0.7);
+
+            const elapsed = Math.floor((Date.now() - this.startTime) / 1000);
+            const finalWpm = Math.round(this.wordsTyped / (elapsed/60)) || 0;
+            
+            document.getElementById('finalTime').innerText = elapsed + 's';
+            document.getElementById('finalWpm').innerText = finalWpm;
+            document.getElementById('finalScore').innerText = this.score;
+            document.getElementById('finalLevel').innerText = this.level;
+
+            document.getElementById('gameOverScreen').classList.remove('hidden'); 
+            this.updatePauseButton();
+        }
+
+        restart() { location.reload(); }
+
+        drawRoad() {
+            const ctx = this.ctx, w = this.canvas.width, h = this.canvas.height;
+            ctx.fillStyle = "#0a0a0a"; ctx.fillRect(0,0,w,h);
+            ctx.fillStyle = "#161616"; ctx.beginPath(); ctx.moveTo(w*0.2, 0); ctx.lineTo(w*0.8, 0); ctx.lineTo(w, h); ctx.lineTo(0, h); ctx.fill();
+            ctx.strokeStyle = "rgba(255, 0, 0, 0.4)"; ctx.beginPath(); ctx.moveTo(0, this.deadlineY); ctx.lineTo(w, this.deadlineY); ctx.stroke();
+            ctx.strokeStyle = "#333"; ctx.setLineDash([20, 20]); ctx.lineDashOffset = -this.roadOffset;
+            ctx.beginPath(); ctx.moveTo(w/2, 0); ctx.lineTo(w/2, h); ctx.stroke(); ctx.setLineDash([]);
+        }
+
+        drawCar() {
+            const ctx = this.ctx;
+            const dx = this.car.targetX - this.car.x;
+            this.car.x += dx * 0.08; this.car.angle = dx * 0.015;
+            ctx.save();
+            ctx.translate(this.car.x, this.canvas.height - 90);
+            ctx.rotate(this.car.angle);
+            
+            ctx.fillStyle = "rgba(0,0,0,0.4)"; ctx.fillRect(-18, -25, 40, 60);
+            ctx.fillStyle = "#e74c3c"; ctx.beginPath(); ctx.roundRect(-20, -30, 40, 60, 5); ctx.fill();
+            ctx.fillStyle = "#111";
+            ctx.fillRect(-24, -25, 8, 14); ctx.fillRect(16, -25, 8, 14);
+            ctx.fillRect(-24, 10, 8, 14); ctx.fillRect(16, 10, 8, 14);
+            ctx.fillStyle = "#2c3e50"; ctx.beginPath(); ctx.roundRect(-15, -15, 30, 25, 3); ctx.fill();
+            ctx.fillStyle = "#ffffaa"; ctx.beginPath(); ctx.arc(-12, -28, 4, 0, Math.PI*2); ctx.fill();
+            ctx.beginPath(); ctx.arc(12, -28, 4, 0, Math.PI*2); ctx.fill();
+            
+            ctx.restore();
+        }
+
+        // Draw large hint text above car with red typed letters
+        drawHint() {
+            if (!this.activeCoin || this.paused) return;
+            const ctx = this.ctx;
+            const word = this.activeCoin.word;
+            const typed = this.activeCoin.typed;
+            const x = this.canvas.width / 2;
+            const y = this.canvas.height - 120; // above car
+            ctx.font = "bold 36px monospace";
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            
+            const totalWidth = ctx.measureText(word).width;
+            const typedWidth = ctx.measureText(typed).width;
+            const startX = x - totalWidth / 2;
+
+            ctx.fillStyle = "#ff3333";
+            ctx.fillText(typed, startX + typedWidth/2, y);
+
+            ctx.fillStyle = "rgba(255,255,255,0.25)";
+            ctx.fillText(word.substring(typed.length), startX + typedWidth + ctx.measureText(word.substring(typed.length)).width/2, y);
+        }
+
+        loop() {
+            if (this.state !== 'playing') return;
+
+            if (!this.paused) {
+                this.roadOffset = (this.roadOffset + 2) % 40;
+                this.spawnTimer++;
+                if (this.spawnTimer > 180 && this.coins.length < 3) { 
+                    const c = new Coin(this.canvas.width, this.level, this.fixedSpeed, this.lastWord);
+                    this.lastWord = c.word; this.coins.push(c); this.spawnTimer = 0; 
+                }
+                this.coins.forEach((c, i) => {
+                    c.update();
+                    if (c.y > this.deadlineY && !c.isMissed) {
+                        c.isMissed = true; this.misses++; if (this.activeCoin === c) this.activeCoin = null;
+                        sounds.play(140, 'sawtooth', 0.25, 0.45);
+                        if (this.misses >= 10) this.gameOver();
+                    }
+                    if (c.y > this.canvas.height + 50) this.coins.splice(i, 1);
+                });
+                const dx = this.car.targetX - this.car.x;
+                this.car.x += dx * 0.08; 
+                this.car.angle = dx * 0.015;
+                this.updateHUD();
+            }
+
+            this.drawRoad();
+            this.coins.forEach(c => c.draw(this.ctx));
+            this.drawCar();
+            this.drawHint();
+
+            requestAnimationFrame(() => this.loop());
+        }
+    }
+    // Add roundRect utility
+    CanvasRenderingContext2D.prototype.roundRect = function(x, y, w, h, r) {
+        if (w < 2 * r) r = w / 2;
+        if (h < 2 * r) r = h / 2;
+        this.moveTo(x + r, y);
+        this.lineTo(x + w - r, y);
+        this.quadraticCurveTo(x + w, y, x + w, y + r);
+        this.lineTo(x + w, y + h - r);
+        this.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+        this.lineTo(x + r, y + h);
+        this.quadraticCurveTo(x, y + h, x, y + h - r);
+        this.lineTo(x, y + r);
+        this.quadraticCurveTo(x, y, x + r, y);
+        return this;
+    };
+    window.game = new Game();
+})();
+</script>
+</body>
+</html>
