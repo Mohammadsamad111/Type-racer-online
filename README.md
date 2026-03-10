@@ -11,4 +11,4 @@ Improve your typing speed while racing a car and collecting coins.
 - Racing gameplay
 
 ## Play Game
-https://github.com/Mohammadsamad111/Type-racer-online
+https://mohammadsamad111.github.io/Type-racer-online/
